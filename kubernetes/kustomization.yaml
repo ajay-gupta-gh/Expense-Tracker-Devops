@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: expense-tracker
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgres-storage.yaml
+  - backend-deployment.yaml
+  - frontend-deployment.yaml
+  - services.yaml
+  - ingress.yaml
+
+commonLabels:
+  app: expense-tracker
+
+images:
+  - name: your-dockerhub-username/expense-tracker-backend
+    newTag: v1.0.0
+  - name: your-dockerhub-username/expense-tracker-frontend
+    newTag: v1.0.0
+
+configMapGenerator:
+  - name: env-config
+    env: configmap.env
+
+secretGenerator:
+  - name: env-secret
+    env: secret.env
