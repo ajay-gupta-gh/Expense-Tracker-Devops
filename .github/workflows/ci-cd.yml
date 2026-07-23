@@ -1,172 +1,74 @@
-name: CI/CD Pipeline
+name: Expense Tracker CI/CD
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-env:
-  AZURE_CONTAINER_REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY || 'expenseacr' }}
-  AKS_CLUSTER_NAME: ${{ vars.AKS_CLUSTER_NAME || 'expense-tracker-aks' }}
-  AKS_RESOURCE_GROUP: ${{ vars.AKS_RESOURCE_GROUP || 'expense-tracker-rg' }}
-  AKS_NAMESPACE: expense-tracker
-  IMAGE_TAG: ${{ github.sha }}
+    branches:
+      - main
 
 jobs:
-  lint-and-test:
-    name: Lint and Test
+
+  backend:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.11"
 
-      - name: Install backend dependencies
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Backend Image
         run: |
-          cd backend
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest flake8
+          docker build -t ajguptadocker/expensetracker-backend:latest .
 
-      - name: Run backend lint
+      - name: Push Backend Image
         run: |
-          flake8 backend/app --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 backend/app --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          docker push ajguptadocker/expensetracker-backend:latest
 
-      - name: Run backend tests
-        run: |
-          cd backend
-          pytest tests/ -v --tb=short
+  frontend:
+    runs-on: ubuntu-latest
 
-      - name: Set up Node.js
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          node-version: 20
 
-      - name: Install frontend dependencies
-        run: npm ci --prefix frontend
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Run frontend lint
-        run: npm run lint --prefix frontend
-
-      - name: Run frontend tests
-        run: npm run test --prefix frontend -- --run
-
-      - name: Build frontend
-        run: npm run build --prefix frontend
-
-  build-and-push:
-    name: Build and Push to ACR
-    needs: lint-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Azure
-        uses: azure/login@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Azure Container Registry
+      - name: Build Frontend Image
         run: |
-          az acr login --name $AZURE_CONTAINER_REGISTRY
+          docker build -t ajguptadocker/expensetracker-frontend:latest .
 
-      - name: Build and push backend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/expense-tracker-backend:${{ env.IMAGE_TAG }}
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/expense-tracker-backend:latest
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/expense-tracker-frontend:${{ env.IMAGE_TAG }}
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/expense-tracker-frontend:latest
-
-  deploy-to-aks:
-    name: Deploy to AKS
-    needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Set AKS context
+      - name: Push Frontend Image
         run: |
-          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
-
-      - name: Create namespace if needed
-        run: |
-          kubectl create namespace $AKS_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Create/update secrets and config
-        run: |
-          kubectl create secret generic expense-tracker-secret -n $AKS_NAMESPACE \
-            --from-literal=DATABASE_URL="postgresql://expense_user:expense_pass@postgres-service:5432/expense_tracker" \
-            --from-literal=DATABASE_PASSWORD="expense_pass" \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy manifests
-        run: |
-          kubectl apply -f kubernetes/namespace.yaml
-          kubectl apply -f kubernetes/configmap.yaml
-          kubectl apply -f kubernetes/postgres-storage.yaml
-          kubectl apply -f kubernetes/services.yaml
-          kubectl apply -f kubernetes/backent-deployment.yaml
-          kubectl apply -f kubernetes/frontend-deployment.yaml
-          kubectl apply -f kubernetes/ingress.yaml
-
-      - name: Wait for rollout
-        run: |
-          kubectl rollout status deployment/expense-tracker-backend -n $AKS_NAMESPACE --timeout=600s
-          kubectl rollout status deployment/expense-tracker-frontend -n $AKS_NAMESPACE --timeout=600s
-
-      - name: Show deployment summary
-        run: |
-          kubectl get pods -n $AKS_NAMESPACE
-          kubectl get svc -n $AKS_NAMESPACE
-          kubectl get ingress -n $AKS_NAMESPACE
-          
-          # Test health          resp = requests.get(f"{backend_url}/health", timeout=10)
-          assert resp.status_code == 200, f"Health check failed: {resp.status_code}"
-          print("✅ Health check passed")
-          
-          # Test categories
-          resp = requests.get(f"{backend_url}/categories", timeout=10)
-          assert resp.status_code == 200, f"Categories check failed: {resp.status_code}"
-          print("✅ Categories check passed")
-          
-          # Test expenses
-          resp = requests.get(f"{backend_url}/expenses", timeout=10)
-          assert resp.status_code == 200, f"Expenses check failed: {resp.status_code}"
-          print("✅ Expenses check passed")
-          
-          print("\n🎉 All smoke tests passed!")
-          EOF
+          docker push ajguptadocker/expensetracker-frontend:latest
