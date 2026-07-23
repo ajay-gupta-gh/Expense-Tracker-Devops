@@ -92,7 +92,7 @@ jobs:
 
       - name: Deploy to Kind
         run: |
-          kubectl apply -f k8s/
+          kubectl apply -f kubernetes/
 
       - name: Restart Backend Deployment
         run: |
@@ -109,6 +109,8 @@ jobs:
       - name: Wait for Frontend Rollout
         run: |
           kubectl rollout status deployment frontend
+
+          
 
       - name: Verify Resources
         run: |
