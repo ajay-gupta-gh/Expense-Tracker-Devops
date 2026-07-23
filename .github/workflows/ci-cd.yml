@@ -93,7 +93,7 @@ jobs:
       - name: Deploy to Kind
         run: |
           kubectl delete deployment postgres -n expense-tracker --ignore-not-found
-          kubectl apply -f kubernetes/
+          kubectl apply -k kubernetes/
 
       - name: Restart Backend Deployment
         run: |
