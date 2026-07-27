@@ -33,11 +33,11 @@ jobs:
 
       - name: Build Backend Image
         run: |
-          docker build -t ajguptadocker/expensetracker-backend:latest .
+          docker build -t ajguptadocker/expensetracker-backend:${{ github.sha }} .
 
       - name: Push Backend Image
         run: |
-          docker push ajguptadocker/expensetracker-backend:latest
+          docker push ajguptadocker/expensetracker-backend:${{ github.sha }}
 
   frontend:
     needs: backend
@@ -68,11 +68,11 @@ jobs:
 
       - name: Build Frontend Image
         run: |
-          docker build -t ajguptadocker/expensetracker-frontend:latest .
+          docker build -t ajguptadocker/expensetracker-frontend:${{ github.sha }} .
 
       - name: Push Frontend Image
         run: |
-          docker push ajguptadocker/expensetracker-frontend:latest
+          docker push ajguptadocker/expensetracker-frontend:${{ github.sha }}
 
   deploy:
     needs:

@@ -27,8 +27,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: expense-tracker-backend:local
-          imagePullPolicy: Never
+          image: ajguptadocker/expensetracker-backend:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 5000
