@@ -3,34 +3,64 @@ kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
   namespace: expense-tracker
+  labels:
+    app: expense-tracker
+    component: postgres
+  annotations:
+    # Optional: Add backup annotations if using Velero/Ark
+    # backup.velero.io/backup-volumes: postgres-storage
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
-  storageClassName: standard
+      storage: 10Gi  # Increased from 1Gi for production
+  # Remove storageClassName for default or use specific class
+  # storageClassName: standard  # Remove this line
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
   namespace: expense-tracker
+  labels:
+    app: expense-tracker
+    component: postgres
+    version: v1.0.0
 spec:
   replicas: 1
   selector:
     matchLabels:
+      app: expense-tracker
       component: postgres
+  strategy:
+    type: Recreate  # PostgreSQL doesn't support rolling updates
   template:
     metadata:
       labels:
+        app: expense-tracker
         component: postgres
+        version: v1.0.0
     spec:
+      # Add node selector for better scheduling (optional)
+      # nodeSelector:
+      #   node-type: database
+      
+      # Add tolerations if you have dedicated database nodes (optional)
+      # tolerations:
+      #   - key: "database"
+      #     operator: "Equal"
+      #     value: "true"
+      #     effect: "NoSchedule"
+      
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: postgres:16-alpine  # Specific version - good!
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
+              name: postgres
+              protocol: TCP
           env:
             - name: POSTGRES_USER
               value: "expense_user"
@@ -41,6 +71,12 @@ spec:
                   key: DATABASE_PASSWORD
             - name: POSTGRES_DB
               value: "expense_tracker"
+            # ✅ Added: Performance tuning
+            - name: POSTGRES_INITDB_ARGS
+              value: "--data-checksums"
+            # ✅ Added: Connection settings
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
           resources:
             requests:
               memory: "256Mi"
@@ -51,30 +87,95 @@ spec:
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
+            # ✅ Added: Custom PostgreSQL config
+            - name: postgres-config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "expense_user", "-d", "expense_tracker"]
+              command:
+                - pg_isready
+                - -U
+                - expense_user
+                - -d
+                - expense_tracker
             initialDelaySeconds: 30
-            periodSeconds: 20
+            periodSeconds: 10  # Reduced from 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "expense_user", "-d", "expense_tracker"]
+              command:
+                - pg_isready
+                - -U
+                - expense_user
+                - -d
+                - expense_tracker
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 5  # Reduced from 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # ✅ Added: Lifecycle hooks
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - "pg_ctl -D /var/lib/postgresql/data stop -m fast"
+      # ✅ Added: Init container for volume permissions
+      initContainers:
+        - name: init-postgres-data
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              chown -R 999:999 /var/lib/postgresql/data
+              chmod 700 /var/lib/postgresql/data
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          securityContext:
+            runAsUser: 0
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:
             claimName: postgres-pvc
+        # ✅ Added: Custom PostgreSQL config
+        - name: postgres-config
+          configMap:
+            name: postgres-config
+            optional: true  # Config is optional
+      # ✅ Added: Security context for PostgreSQL container
+      securityContext:
+        runAsUser: 999  # PostgreSQL user ID in alpine image
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: "OnRootMismatch"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
   namespace: expense-tracker
+  labels:
+    app: expense-tracker
+    component: postgres
+  annotations:
+    # ✅ Added: Prometheus monitoring annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9187"
+    prometheus.io/path: "/metrics"
 spec:
   type: ClusterIP
   ports:
     - port: 5432
       targetPort: 5432
+      protocol: TCP
+      name: postgres
   selector:
+    app: expense-tracker
     component: postgres
+  # ✅ Added: Session affinity for better caching
+  sessionAffinity: None

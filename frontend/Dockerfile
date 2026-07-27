@@ -10,8 +10,10 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build application
-ENV VITE_API_URL=/api/v1
+# ✅ Build with relative API path (for ingress)
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=${VITE_API_URL}
+
 RUN npm run build
 
 # Stage 2: Production - Nginx

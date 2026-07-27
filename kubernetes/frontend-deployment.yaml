@@ -27,15 +27,16 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: expense-tracker-frontend:local
-          imagePullPolicy: Never
+          # ✅ Use specific SHA, NOT :latest
+          image: ajguptadocker/expensetracker-frontend:v1.0.0
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 80
               protocol: TCP
           env:
             - name: VITE_API_URL
-              value: "http://backend-service:5000/api/v1"
+              value: "/api/v1"
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:

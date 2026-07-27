@@ -6,26 +6,25 @@ namespace: expense-tracker
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret.yaml
+  # - secret.yaml  ❌ REMOVED - Don't commit secrets
   - postgres-storage.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml
   - ingress.yaml
+  - db-init-job.yaml
 
 commonLabels:
   app: expense-tracker
 
+# ✅ Use specific versions, NOT :latest
 images:
-  - name: your-dockerhub-username/expense-tracker-backend
-    newTag: v1.0.0
-  - name: your-dockerhub-username/expense-tracker-frontend
-    newTag: v1.0.0
+  - name: ajguptadocker/expensetracker-backend
+    newName: ajguptadocker/expensetracker-backend
+    newTag: v1.0.0  # ✅ Specific version
+  - name: ajguptadocker/expensetracker-frontend
+    newName: ajguptadocker/expensetracker-frontend
+    newTag: v1.0.0  # ✅ Specific version
 
-configMapGenerator:
-  - name: env-config
-    env: configmap.env
-
-secretGenerator:
-  - name: env-secret
-    env: secret.env
+# ✅ Use sealed-secrets or external secrets
+# DO NOT use secretGenerator with plaintext secrets

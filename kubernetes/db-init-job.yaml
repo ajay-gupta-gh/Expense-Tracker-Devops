@@ -15,10 +15,22 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine  # ✅ Specific version
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-service -U expense_user -d expense_tracker; do
+                echo "Waiting for database..."
+                sleep 2
+              done
       containers:
         - name: db-init
-          image: expense-tracker-backend:local
-          imagePullPolicy: Never
+          # ✅ Use specific version, NOT :latest
+          image: ajguptadocker/expensetracker-backend:v1.0.0
+          imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -41,16 +53,16 @@ spec:
             - |
               python -c "
               from app import create_app, db
-              app = create_app('development')
+              app = create_app('production')
               with app.app_context():
                   db.create_all()
                   from app.models.category import Category
                   from app.seed_data import seed_database
                   if Category.query.count() == 0:
                       seed_database()
-                      print('Database initialized and seeded')
+                      print('✅ Database initialized and seeded')
                   else:
-                      print('Database already initialized')
+                      print('✅ Database already initialized')
               "
           resources:
             requests:

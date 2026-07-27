@@ -10,6 +10,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/rate-limit: "100"
     nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    # ✅ Force HTTP - disable SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
 spec:
   ingressClassName: nginx
   rules:
@@ -30,7 +34,8 @@ spec:
                 name: frontend-service
                 port:
                   number: 80
-  tls:
-    - hosts:
-        - expense-tracker.local
-      secretName: expense-tracker-tls
+  # ❌ TLS removed for local development
+  # tls:
+  #   - hosts:
+  #       - expense-tracker.local
+  #     secretName: expense-tracker-tls
