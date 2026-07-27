@@ -1,6 +1,6 @@
 # 🚀 EXPENSE TRACKER - COMPLETE DEPLOYMENT GUIDE
 
-## 📍 Deployment Options Overview
+## 📍Deployment Options Overview
 
 | Option | Environment | Complexity | Use Case |
 |--------|------------|-----------|----------|
@@ -13,7 +13,7 @@
 ## 🔧 OPTION 1: LOCAL DEVELOPMENT (Quick Start)
 
 ### Prerequisites
-```bash
+```bash --
 ✓ Python 3.12+
 ✓ Node.js 18+
 ✓ PostgreSQL 16 running locally (or Docker)
@@ -263,7 +263,7 @@ cd /home/sigmoid/Desktop/Expense\ tracker
 cd backend
 docker build -t expense-tracker-backend:local .
 
-# Build frontend image
+# Build frontend image (default VITE_API_URL=/api/v1 relative URL; nginx proxies to backend-service)
 cd ../frontend
 docker build -t expense-tracker-frontend:local .
 
@@ -280,7 +280,8 @@ kubectl apply -f kubernetes/configmap.yaml
 kubectl apply -f kubernetes/secret.yaml
 kubectl apply -f kubernetes/postgres-storage.yaml
 kubectl apply -f kubernetes/services.yaml
-kubectl apply -f kubernetes/backent-deployment.yaml
+kubectl apply -f kubernetes/backend-deployment.yaml
+kubectl apply -f kubernetes/db-init-job.yaml
 kubectl apply -f kubernetes/frontend-deployment.yaml
 kubectl apply -f kubernetes/ingress.yaml
 ```
@@ -356,6 +357,7 @@ kubectl apply -f secret.yaml
 kubectl apply -f postgres-storage.yaml
 kubectl apply -f backend-deployment.yaml
 kubectl apply -f frontend-deployment.yaml
+kubectl apply -f db-init-job.yaml
 kubectl apply -f services.yaml
 kubectl apply -f ingress.yaml
 ```
@@ -457,6 +459,8 @@ Namespace: expense-tracker
 │   └── postgres-service (ClusterIP)
 ├── StatefulSet
 │   └── postgres
+├── Job
+│   └── db-init (database initialization)
 ├── Ingress
 │   └── expense-ingress
 ├── ConfigMap
