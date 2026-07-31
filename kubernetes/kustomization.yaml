@@ -1,30 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: expense-tracker
-
 resources:
   - namespace.yaml
+  - secret.yaml
   - configmap.yaml
-  # - secret.yaml  ❌ REMOVED - Don't commit secrets
-  - postgres-storage.yaml
-  - backend-deployment.yaml
-  - frontend-deployment.yaml
-  - services.yaml
+
+  - postgres/pvc.yaml
+  - postgres/deployment.yaml
+  - postgres/service.yaml
+
+  - backend/init-job.yaml
+  - backend/deployment.yaml
+  - backend/service.yaml
+
+  - frontend/deployment.yaml
+  - frontend/service.yaml
   - ingress.yaml
-  - db-init-job.yaml
-
-commonLabels:
-  app: expense-tracker
-
-# ✅ Use specific versions, NOT :latest
-images:
-  - name: ajguptadocker/expensetracker-backend
-    newName: ajguptadocker/expensetracker-backend
-    newTag: v1.0.0  # ✅ Specific version
-  - name: ajguptadocker/expensetracker-frontend
-    newName: ajguptadocker/expensetracker-frontend
-    newTag: v1.0.0  # ✅ Specific version
-
-# ✅ Use sealed-secrets or external secrets
-# DO NOT use secretGenerator with plaintext secrets

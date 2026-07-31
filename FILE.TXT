@@ -1,0 +1,87 @@
+                Browser
+                    │
+                    ▼
+          NGINX Ingress Controller
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+Frontend Service          Backend Service
+        │                       │
+        ▼                       ▼
+Frontend Pods            Backend Pods
+                                  │
+                                  ▼
+                         PostgreSQL Service
+                                  │
+                                  ▼
+                           PostgreSQL Pod
+
+
+
+
+
+sigmoid@sigmoid-ThinkPad-T460:~/Desktop/Expensetracker$ # Step 6: Deploy Logging Stack
+echo -e "${YELLOW}🚀 Deploying Logging Stack (Loki + Grafana)...${NC}"
+if [ -f "./deploy-logging.sh" ]; then
+    ./deploy-logging.sh
+else
+    echo -e "${RED}❌ deploy-logging.sh not found, skipping logging deployment.${NC}"
+fi
+echo ""
+🚀 Deploying Logging Stack (Loki + Grafana)...
+📊 Deploying Log Aggregation Stack (Loki + Grafana)
+===================================================
+
+📦 Adding Grafana Helm repository...
+"grafana" has been added to your repositories
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "ingress-nginx" chart repository
+...Successfully got an update from the "grafana" chart repository
+...Successfully got an update from the "prometheus-community" chart repository
+...Successfully got an update from the "stable" chart repository
+Update Complete. ⎈Happy Helming!⎈
+✅ Repository added/updated
+
+📁 Setting up namespaces...
+namespace/logging created
+✅ Logging namespace ready
+
+🚀 Deploying Loki Stack (Loki + Promtail + Grafana)...
+Release "loki" does not exist. Installing it now.
+WARNING: This chart is deprecated
+NAME: loki
+LAST DEPLOYED: Fri Jul 31 08:14:30 2026
+NAMESPACE: logging
+STATUS: deployed
+REVISION: 1
+NOTES:
+The Loki stack has been deployed to your cluster. Loki can now be added as a datasource in Grafana.
+
+See http://docs.grafana.org/features/datasources/loki/ for more detail.
+✅ Loki Stack and Grafana deployed successfully
+
+⏳ Waiting for Grafana to be ready...
+error: no matching resources found
+⚠️ Grafana is still starting up...
+✅ Check complete
+
+🎉 Deployment complete!
+===================================================
+You can access Grafana to view your logs.
+
+To access Grafana, run this command in a separate terminal:
+  kubectl port-forward --namespace logging service/loki-grafana 3000:80
+
+Then, open your browser and navigate to: http://localhost:3000
+
+Credentials:
+  Username: admin
+  Password: cD1AccVkhg3fmfU3ynKA0ec9DqoZxq8e5x4yH3yN
+
+Instructions to view logs:
+1. Log into Grafana.
+2. Go to 'Explore' (compass icon on the left menu).
+3. Ensure 'Loki' is selected in the data source dropdown.
+4. In the 'Log browser', you can query logs by selecting labels like 'namespace' -> 'expense-tracker' or 'app' -> 'backend'.
+
+sigmoid@sigmoid-ThinkPad-T460:~/Desktop/Expensetracker$ 

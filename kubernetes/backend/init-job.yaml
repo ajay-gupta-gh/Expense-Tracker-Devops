@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: backend-db-init
+  namespace: expense-tracker
+
+spec:
+  backoffLimit: 5
+
+  template:
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+        - name: db-init
+
+          image: ajguptadocker/expensetracker-backend:v1
+          imagePullPolicy: Always
+          env:
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: expense-tracker-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: expense-tracker-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: expense-tracker-secret
+                  key: POSTGRES_DB
+
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+
+            - name: POSTGRES_HOST
+              value: postgres
+
+            - name: POSTGRES_PORT
+              value: "5432"
+
+            - name: FLASK_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: expense-tracker-config
+                  key: FLASK_ENV
+
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: expense-tracker-config
+                  key: LOG_LEVEL
+
+          command:
+            - sh
+            - -c
+            - |
+              python -c "
+              from app import create_app, db
+              app=create_app('production')
+              ctx=app.app_context()
+              ctx.push()
+              db.create_all()
+
+              from app.models.category import Category
+              from app.seed_data import seed_database
+
+              if Category.query.count()==0:
+                  seed_database()
+
+              print('Database initialized successfully')
+              "

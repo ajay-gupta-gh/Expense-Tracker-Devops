@@ -1,7 +1,9 @@
 apiVersion: v1
 kind: Namespace
+
 metadata:
   name: expense-tracker
   labels:
-    app: expense-tracker
-    environment: production
+    app.kubernetes.io/name: expense-tracker
+    app.kubernetes.io/part-of: expense-tracker
+    environment: development

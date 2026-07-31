@@ -6,9 +6,15 @@ class DefaultConfig:
     TESTING = False
     
     # Database
+    db_user = os.getenv("POSTGRES_USER")
+    db_password = os.getenv("POSTGRES_PASSWORD")    
+    db_name = os.getenv("POSTGRES_DB")
+    db_host = os.getenv("POSTGRES_HOST", "localhost")
+    db_port = os.getenv("POSTGRES_PORT", "5432")
+
     SQLALCHEMY_DATABASE_URI = os.getenv(
-        'DATABASE_URL',
-        'postgresql://expense_user:expense_pass@localhost:5432/expense_tracker'
+        "DATABASE_URL",
+        f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {

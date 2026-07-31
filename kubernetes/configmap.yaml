@@ -1,20 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
+
 metadata:
   name: expense-tracker-config
   namespace: expense-tracker
+
 data:
-  LOG_LEVEL: "INFO"
-  FLASK_ENV: "production"
-  DATABASE_POOL_SIZE: "10"
-  DATABASE_TIMEOUT: "30"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: frontend-config
-  namespace: expense-tracker
-data:
-  API_URL: "http://backend-service:5000"
-  LOG_LEVEL: "INFO"
-  REACT_APP_ENV: "production"
+  FLASK_ENV: "development"
+  LOG_LEVEL: "DEBUG"
+
+  BACKEND_HOST: "backend-service"
+  BACKEND_PORT: "5000"
