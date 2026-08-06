@@ -9,13 +9,12 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+RUN npm install                         
 
-RUN npm install
-
-# Copy source code
+# Copy source code                          
 COPY . .
-
-# Build with relative API path (works with Ingress/Reverse Proxy)
+# Build with relative API path (works with Ingress/Reverse Proxy)                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
 

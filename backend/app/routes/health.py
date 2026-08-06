@@ -2,9 +2,10 @@ from flask import Blueprint, jsonify, current_app
 from app import db
 from app.utils.logging import log_manager
 
-health_bp = Blueprint('health', __name__, url_prefix='/api/v1')
+health_bp = Blueprint('health', __name__)
 
 @health_bp.route('/health', methods=['GET'])
+@health_bp.route('/api/v1/health', methods=['GET'])
 def health_check():
     """
     Health check endpoint for Kubernetes probes
@@ -37,6 +38,7 @@ def health_check():
     return jsonify(health_status), status_code
 
 @health_bp.route('/health/ready', methods=['GET'])
+@health_bp.route('/api/v1/health/ready', methods=['GET'])
 def readiness_check():
     """
     Readiness probe for Kubernetes
@@ -50,6 +52,7 @@ def readiness_check():
         return jsonify({'ready': False, 'error': str(e)}), 503
 
 @health_bp.route('/health/live', methods=['GET'])
+@health_bp.route('/api/v1/health/live', methods=['GET'])
 def liveness_check():
     """
     Liveness probe for Kubernetes

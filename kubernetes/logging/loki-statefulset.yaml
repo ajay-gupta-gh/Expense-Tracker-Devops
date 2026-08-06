@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: expense-tracker
+  labels:
+    app: loki
+    app.kubernetes.io/managed-by: Helm
+    chart: loki-2.16.0
+    heritage: Helm
+    release: loki
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: loki
+      release: loki
+  serviceName: loki-headless
+  template:
+    metadata:
+      annotations:
+        checksum/config: 29a9abb6cf4c5338bb302683cefaecf54300a4cdedd576b8a7e87ded9f951304
+        prometheus.io/port: http-metrics
+        prometheus.io/scrape: 'true'
+      labels:
+        app: loki
+        name: loki
+        release: loki
+    spec:
+      affinity: {}
+      containers:
+      - args:
+        - -config.file=/etc/loki/loki.yaml
+        image: grafana/loki:2.6.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: http-metrics
+            scheme: HTTP
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: loki
+        ports:
+        - containerPort: 3100
+          name: http-metrics
+          protocol: TCP
+        - containerPort: 9095
+          name: grpc
+          protocol: TCP
+        - containerPort: 7946
+          name: memberlist-port
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: http-metrics
+            scheme: HTTP
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        securityContext:
+          readOnlyRootFilesystem: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /etc/loki
+          name: config
+        - mountPath: /data
+          name: storage
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      serviceAccount: loki
+      serviceAccountName: loki
+      terminationGracePeriodSeconds: 4800
+      volumes:
+      - emptyDir: {}
+        name: tmp
+      - name: config
+        secret:
+          defaultMode: 420
+          secretName: loki
+      - emptyDir: {}
+        name: storage
+  updateStrategy:
+    type: RollingUpdate

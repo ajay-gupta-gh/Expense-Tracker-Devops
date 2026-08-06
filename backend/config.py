@@ -34,6 +34,14 @@ class DevelopmentConfig(DefaultConfig):
     DEBUG = True
     LOG_LEVEL = 'DEBUG'
 
+class TestingConfig(DefaultConfig):
+    """Testing configuration"""
+    TESTING = True
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///:memory:')
+    SQLALCHEMY_ENGINE_OPTIONS = {}
+    LOG_LEVEL = 'DEBUG'
+
 class ProductionConfig(DefaultConfig):
     """Production configuration"""
     DEBUG = False

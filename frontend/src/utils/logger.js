@@ -10,7 +10,7 @@ const LOG_LEVELS = {
   ERROR: 3
 };
 
-class StructuredLogger {
+export class StructuredLogger {
   constructor(serviceName = 'expense-tracker-frontend') {
     this.serviceName = serviceName;
     this.logLevel = this.getLogLevel();
@@ -22,7 +22,15 @@ class StructuredLogger {
   }
 
   generateCorrelationId() {
-    return crypto.randomUUID();
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+      const randomValue = Math.floor(Math.random() * 16);
+      const value = char === 'x' ? randomValue : (randomValue & 0x3) | 0x8;
+      return value.toString(16);
+    });
   }
 
   formatLog(level, message, data = {}) {

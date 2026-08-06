@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ajguptadocker/expensetracker-frontend:v1
-          imagePullPolicy: Always
+          image: expense-tracker-frontend:local
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           env:
