@@ -27,5 +27,8 @@ class Category(db.Model):
             'expense_count': self.expenses.count()
         }
     
+    
+
+    #writing this to test ci -cd 
     def __repr__(self):
         return f'<Category {self.name}>'
