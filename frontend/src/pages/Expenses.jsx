@@ -166,6 +166,8 @@ function Expenses() {
           </tbody>
         </table>
 
+        {/* this is to test frontend cicd */}
+
         {/* Pagination */}
         {pagination.pages > 1 && (
           <div className="px-6 py-4 border-t flex items-center justify-between">
