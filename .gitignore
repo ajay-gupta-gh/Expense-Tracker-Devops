@@ -1,2 +1,5 @@
 actions-runner/
 .venv/
+.github/workflows/backend.yml
+.github/workflows/frontend.yml
+#.github/workflows/ci-cd.yml
