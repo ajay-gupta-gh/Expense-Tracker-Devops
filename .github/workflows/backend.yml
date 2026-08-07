@@ -1,0 +1,89 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'kubernetes/backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Backend Tests
+        env:
+          DATABASE_URL: 'sqlite:///:memory:'
+        run: |
+          pytest tests/ -v
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Backend Image
+        run: |
+          docker build -t ajguptadocker/expensetracker-backend:v1 .
+
+      - name: Push Backend Image
+        run: |
+          docker push ajguptadocker/expensetracker-backend:v1
+
+  deploy:
+    needs: build
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Verify Cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Apply Kubernetes Manifests
+        run: |
+          kubectl apply -k kubernetes/
+
+      - name: Restart Backend Deployment
+        run: |
+          kubectl rollout restart deployment expense-tracker-backend -n expense-tracker
+          kubectl rollout status deployment expense-tracker-backend -n expense-tracker
+
+      - name: Verify Backend
+        run: |
+          kubectl get pods -n expense-tracker
+          kubectl get svc -n expense-tracker
